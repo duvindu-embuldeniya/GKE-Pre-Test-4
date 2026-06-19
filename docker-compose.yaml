@@ -61,12 +61,12 @@ services:
     image: nginx:alpine
     container_name: nginx_container
     ports:
-      - "80:80"
-      # - "443:443"
+      # - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      # - ./ssl/origin-cert.pem:/etc/ssl/cloudflare/origin-cert.pem:ro
-      # - ./ssl/origin-key.pem:/etc/ssl/cloudflare/origin-key.pem:ro
+      - ./ssl/origin-cert.pem:/etc/ssl/cloudflare/origin-cert.pem:ro
+      - ./ssl/origin-key.pem:/etc/ssl/cloudflare/origin-key.pem:ro
     depends_on:
       - frontend
 
