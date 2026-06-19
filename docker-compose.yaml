@@ -21,8 +21,8 @@ services:
     build: ./backend
     image: backend:django
     container_name: django_container
-    ports:
-      - 8000:8000
+    # ports:
+    #   - 8000:8000
     environment:
       - DB_HOST=db
       - DB_NAME=${DB_NAME}
@@ -50,25 +50,25 @@ services:
       context: ./frontend
     image: frontend:react
     container_name: react_container
-    ports:
-      - 5173:80
+    # ports:
+    #   - 5173:80
     depends_on:
       backend:
         condition: service_healthy
     restart: unless-stopped
 
-  # nginx:
-  #   image: nginx:alpine
-  #   container_name: nginx_container
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-  #     - ./ssl/origin-cert.pem:/etc/ssl/cloudflare/origin-cert.pem:ro
-  #     - ./ssl/origin-key.pem:/etc/ssl/cloudflare/origin-key.pem:ro
-  #   depends_on:
-  #     - frontend
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_container
+    ports:
+      - "80:80"
+      # - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      # - ./ssl/origin-cert.pem:/etc/ssl/cloudflare/origin-cert.pem:ro
+      # - ./ssl/origin-key.pem:/etc/ssl/cloudflare/origin-key.pem:ro
+    depends_on:
+      - frontend
 
 volumes:
   prod-db-data:

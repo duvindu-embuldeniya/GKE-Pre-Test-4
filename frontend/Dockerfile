@@ -8,8 +8,8 @@ RUN npm install
 
 COPY . .
 
-# ENV VITE_SERVER_BASE_URL=/api/v1
-ENV VITE_SERVER_BASE_URL=http://34.124.228.21:8000/api/v1
+ENV VITE_SERVER_BASE_URL=/api/v1
+# ENV VITE_SERVER_BASE_URL=http://34.124.228.21:8000/api/v1
 
 RUN npm run build
 
