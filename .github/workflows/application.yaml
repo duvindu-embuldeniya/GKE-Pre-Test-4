@@ -1,0 +1,86 @@
+name: CI/CD - Build, Push, Deploy, Rollback
+on:
+  push:
+    branches:
+      - main
+  workflow_run:
+    workflows: ["Terraform workflow"]
+    types:
+      - completed
+jobs:
+  build-push:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && !contains(github.event.workflow_run.head_commit.message, 'rollback') }}
+    runs-on: ubuntu-latest
+    env:
+      GCP_REGION: ${{ secrets.GCP_REGION }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      BACKEND_REPO: ${{ secrets.GAR_BACKEND_REPO }}
+      FRONTEND_REPO: ${{ secrets.GAR_FRONTEND_REPO }}
+      IMAGE_TAG: ${{ github.run_number }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - name: Install Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      - name: Configure Docker for GAR
+        run: |
+          gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev
+      - name: Build & Push Backend Image to GAR
+        run: |
+          docker build \
+            --tag ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${BACKEND_REPO}/backend:${IMAGE_TAG} \
+            ./backend
+          docker push ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${BACKEND_REPO}/backend:${IMAGE_TAG}
+      - name: Build & Push Frontend Image to GAR
+        run: |
+          docker build \
+            --build-arg VITE_SERVER_BASE_URL=/api/v1 \
+            --tag ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${FRONTEND_REPO}/frontend:${IMAGE_TAG} \
+            ./frontend
+          docker push ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${FRONTEND_REPO}/frontend:${IMAGE_TAG}
+
+  deploy:
+    needs: build-push
+    runs-on: ubuntu-latest
+    env:
+      GCP_REGION: ${{ secrets.GCP_REGION }}
+      IMAGE_TAG: ${{ github.run_number }}
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCP_HOST }}
+          username: ${{ secrets.GCP_USER }}
+          key: ${{ secrets.GCP_SSH_KEY }}
+          envs: IMAGE_TAG,GCP_REGION
+          script: |
+            cd /opt/clickmart
+            sudo git pull origin main
+            sudo gcloud auth activate-service-account --key-file=/opt/clickmart/sa.json
+            sudo gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev -q
+            sudo docker compose -f docker-compose.prod.yaml up --build -d
+
+  rollback:
+    if: ${{ contains(github.event.head_commit.message, 'rollback') }}
+    runs-on: ubuntu-latest
+    env:
+      GCP_REGION: ${{ secrets.GCP_REGION }}
+    steps:
+      - name: Rollback via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCP_HOST }}
+          username: ${{ secrets.GCP_USER }}
+          key: ${{ secrets.GCP_SSH_KEY }}
+          script: |
+            cd /opt/clickmart
+            sudo git pull origin main
+            sudo gcloud auth activate-service-account --key-file=/opt/clickmart/sa.json
+            sudo gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev -q
+            sudo docker compose -f docker-compose.rollback.yaml up --build -d
