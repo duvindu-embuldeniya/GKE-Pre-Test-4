@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: asia-southeast1-docker.pkg.dev/niduvara-499617/backend/backend:28
+    image: asia-southeast1-docker.pkg.dev/niduvara-499617/backend/backend:30
     container_name: django_container
     environment:
       - DB_HOST=db
@@ -43,7 +43,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: asia-southeast1-docker.pkg.dev/niduvara-499617/frontend/frontend:28
+    image: asia-southeast1-docker.pkg.dev/niduvara-499617/frontend/frontend:30
     container_name: react_container
     depends_on:
       backend:
