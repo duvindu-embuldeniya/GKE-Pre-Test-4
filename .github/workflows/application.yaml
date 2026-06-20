@@ -45,42 +45,42 @@ jobs:
             ./frontend
           docker push ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${FRONTEND_REPO}/frontend:${IMAGE_TAG}
 
-#   deploy:
-#     needs: build-push
-#     runs-on: ubuntu-latest
-#     env:
-#       GCP_REGION: ${{ secrets.GCP_REGION }}
-#       IMAGE_TAG: ${{ github.run_number }}
-#     steps:
-#       - name: Deploy via SSH
-#         uses: appleboy/ssh-action@v1.0.3
-#         with:
-#           host: ${{ secrets.GCP_HOST }}
-#           username: ${{ secrets.GCP_USER }}
-#           key: ${{ secrets.GCP_SSH_KEY }}
-#           envs: IMAGE_TAG,GCP_REGION
-#           script: |
-#             cd /opt/clickmart
-#             sudo git pull origin main
-#             sudo gcloud auth activate-service-account --key-file=/opt/clickmart/sa.json
-#             sudo gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev -q
-#             sudo docker compose -f docker-compose.prod.yaml up --build -d
+  deploy:
+    needs: build-push
+    runs-on: ubuntu-latest
+    env:
+      GCP_REGION: ${{ secrets.GCP_REGION }}
+      IMAGE_TAG: ${{ github.run_number }}
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCP_HOST }}
+          username: ${{ secrets.GCP_USER }}
+          key: ${{ secrets.GCP_SSH_KEY }}
+          envs: IMAGE_TAG,GCP_REGION
+          script: |
+            cd /opt/clickmart
+            sudo git pull origin main
+            sudo gcloud auth activate-service-account --key-file=/opt/clickmart/sa.json
+            sudo gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev -q
+            sudo docker compose -f docker-compose.prod.yaml up --build -d
 
-#   rollback:
-#     if: ${{ contains(github.event.head_commit.message, 'rollback') }}
-#     runs-on: ubuntu-latest
-#     env:
-#       GCP_REGION: ${{ secrets.GCP_REGION }}
-#     steps:
-#       - name: Rollback via SSH
-#         uses: appleboy/ssh-action@v1.0.3
-#         with:
-#           host: ${{ secrets.GCP_HOST }}
-#           username: ${{ secrets.GCP_USER }}
-#           key: ${{ secrets.GCP_SSH_KEY }}
-#           script: |
-#             cd /opt/clickmart
-#             sudo git pull origin main
-#             sudo gcloud auth activate-service-account --key-file=/opt/clickmart/sa.json
-#             sudo gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev -q
-#             sudo docker compose -f docker-compose.prod.yaml up --build -d
+  rollback:
+    if: ${{ contains(github.event.head_commit.message, 'rollback') }}
+    runs-on: ubuntu-latest
+    env:
+      GCP_REGION: ${{ secrets.GCP_REGION }}
+    steps:
+      - name: Rollback via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCP_HOST }}
+          username: ${{ secrets.GCP_USER }}
+          key: ${{ secrets.GCP_SSH_KEY }}
+          script: |
+            cd /opt/clickmart
+            sudo git pull origin main
+            sudo gcloud auth activate-service-account --key-file=/opt/clickmart/sa.json
+            sudo gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev -q
+            sudo docker compose -f docker-compose.prod.yaml up --build -d
