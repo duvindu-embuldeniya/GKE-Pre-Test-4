@@ -1,8 +1,5 @@
 name: Terraform workflow
 
-# on:
-#   workflow_dispatch:
-
 on:
   push:
     branches:
